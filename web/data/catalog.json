@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "game": {"title": "Nivalis Nights"},
+  "defaultQuestId": null,
+  "defaultDialogueId": null,
+  "quests": [],
+  "dialogues": [],
+  "coverage": {
+    "questsFound": 0,
+    "questsExported": 0,
+    "dialoguesFound": 0,
+    "dialoguesExported": 0,
+    "scope": "source-only"
+  }
+}

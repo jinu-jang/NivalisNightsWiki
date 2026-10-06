@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nivalis guide catalog v2",
+  "type": "object",
+  "required": ["schemaVersion", "game", "defaultQuestId", "defaultDialogueId", "quests", "dialogues", "coverage"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "game": {"type": "object", "required": ["title"]},
+    "defaultQuestId": {"type": ["string", "null"]},
+    "defaultDialogueId": {"type": ["string", "null"]},
+    "quests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "file", "objectiveCount", "dialogueCount"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "file": {"type": "string"},
+          "objectiveCount": {"type": "integer"},
+          "dialogueCount": {"type": "integer"}
+        }
+      }
+    },
+    "dialogues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "file", "speakers", "questIds", "objectiveIds"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "file": {"type": "string"},
+          "speakers": {"type": "array", "items": {"type": "string"}},
+          "questIds": {"type": "array", "items": {"type": "string"}},
+          "objectiveIds": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "coverage": {"type": "object"}
+  }
+}

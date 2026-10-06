@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nivalis dialogue graph v2",
+  "type": "object",
+  "required": ["schemaVersion", "dialogueId", "title", "entry", "exit", "nodes", "edges", "analysis", "questIds", "objectiveIds"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "dialogueId": {"type": "string"},
+    "title": {"type": "string"},
+    "entry": {"type": "string"},
+    "exit": {"type": "string"},
+    "questIds": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "objectiveIds": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "text", "effects", "conditions"],
+        "properties": {
+          "id": {"type": "string"},
+          "articyId": {"type": "string", "pattern": "^[0-9]+$"},
+          "type": {"enum": ["line", "choice", "action", "condition", "entry", "exit", "external", "subdialogue"]},
+          "text": {"type": "string"},
+          "speaker": {"type": ["string", "null"]},
+          "script": {"type": "string"},
+          "textSource": {"enum": ["localization", "authored"]},
+          "effects": {"type": "array", "items": {"$ref": "#/$defs/effect"}},
+          "conditions": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to", "effects", "conditions"],
+        "properties": {
+          "id": {"type": "string"},
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "fromPin": {"type": ["string", "null"]},
+          "toPin": {"type": ["string", "null"]},
+          "targetPinRole": {"enum": ["input", "output"]},
+          "effects": {"type": "array", "items": {"$ref": "#/$defs/effect"}},
+          "conditions": {"type": "array", "items": {"type": "string"}},
+          "script": {"type": "string"}
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "required": ["status", "message"],
+      "properties": {
+        "status": {"enum": ["complete", "cycle", "limit", "dead_end"]},
+        "message": {"type": "string"}
+      }
+    },
+    "warnings": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "effect": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["delta", "set", "unlock_recipe", "unparsed", "template_action"]},
+        "variable": {"type": "string"},
+        "value": {"type": ["integer", "boolean"]},
+        "recipe": {"type": "string"},
+        "script": {"type": "string"},
+        "action": {"type": "string"},
+        "label": {"type": "string"}
+      }
+    }
+  }
+}

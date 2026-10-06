@@ -1,0 +1,209 @@
+<!doctype html>
+<!--
+THESIS: A conversation field guide, not a dashboard. The reply and its branching context share the page.
+OWN-WORLD: Ivory paper, forest ink, amber annotations; an original moon/city/bowl seal and unboxed reading space.
+STORY: Find a quest, follow an objective, choose a reply, and see exactly where that route travels.
+FIRST VIEWPORT: A narrow library; a spacious reading column beside a legible, scrollable conversation map.
+FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, and source material behind disclosure.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#203d34">
+  <meta name="description" content="A quiet, independent quest and conversation guide to Nivalis Nights. Explore dialogue choices, relationship changes, and recipes.">
+  <title>Nivalis Fieldnotes</title>
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the guide</a>
+  <button class="drawer-backdrop" id="drawer-backdrop" aria-label="Close quest library" hidden></button>
+  <aside class="library" id="library" aria-label="Fieldnotes library">
+    <div class="library-brand">
+      <img src="assets/mark.svg" width="54" height="54" alt="" class="brand-mark">
+      <a class="wordmark" href="./"><span>Nivalis</span><span>Fieldnotes</span></a>
+      <button class="icon-button drawer-close" id="drawer-close" aria-label="Close library">
+        <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg>
+      </button>
+    </div>
+    <p class="brand-caption">A guide to the people<br>and possibilities of the city.</p>
+    <div class="library-tabs" role="tablist" aria-label="Library collections">
+      <button id="quests-tab" type="button" role="tab" aria-selected="true" aria-controls="library-results">Quests</button>
+      <button id="dialogues-tab" type="button" role="tab" aria-selected="false" aria-controls="library-results" tabindex="-1">Conversations</button>
+    </div>
+    <label class="search-label" for="library-search">Search the library</label>
+    <div class="search-field">
+      <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#search"></use></svg>
+      <input type="search" id="library-search" placeholder="Title or person…" autocomplete="off">
+    </div>
+    <p class="library-count" id="library-count" aria-live="polite">Loading the library…</p>
+    <nav class="library-results" id="library-results" aria-label="Quests" role="tabpanel" aria-labelledby="quests-tab"></nav>
+    <div class="library-pagination" id="library-pagination" hidden>
+      <button type="button" id="library-prev" aria-label="Previous library page">← Previous</button>
+      <span id="library-page"></span>
+      <button type="button" id="library-next" aria-label="Next library page">Next →</button>
+    </div>
+    <details class="library-about">
+      <summary>About these fieldnotes</summary>
+      <p>An independent, read-only guide to Nivalis Nights. No game or save files are changed.</p>
+      <p id="coverage"></p>
+      <p>Original guide identity; not official game artwork. Dialogue and quest content belong to their respective creators.</p>
+    </details>
+  </aside>
+
+  <main id="main" tabindex="-1">
+    <header class="page-header">
+      <button class="library-toggle" id="library-toggle" aria-controls="library" aria-expanded="false">
+        <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#menu"></use></svg>
+        <span>Library</span>
+      </button>
+      <a class="mobile-wordmark" href="./"><img src="assets/mark.svg" width="31" height="31" alt=""><span>Nivalis Fieldnotes</span></a>
+      <nav class="breadcrumbs" aria-label="Breadcrumb" id="breadcrumbs"><span>Fieldnotes</span><span aria-hidden="true">/</span><span>Quest library</span></nav>
+      <span class="header-note">Nivalis Nights · Independent guide</span>
+    </header>
+
+    <section class="page-status" id="page-status" aria-live="polite" aria-atomic="true">
+      <img src="assets/mark.svg" width="80" height="80" alt="">
+      <h1 id="status-title">Opening your fieldnotes…</h1>
+      <p id="status-message">Loading the quest and conversation library.</p>
+      <button type="button" class="solid-button" id="retry" hidden>Try again</button>
+      <div class="data-pack-guide" id="data-pack-guide" hidden>
+        <h2>Bring your own fieldnotes</h2>
+        <p>Explore quests, compare replies, and follow every branch with a data pack from your own local game installation.</p>
+        <ol>
+          <li>Export a local quest and dialogue data pack using this project’s extractor.</li>
+          <li>Keep its <code>data</code> folder beside this guide’s <code>index.html</code>, then open the guide through your local HTTP server.</li>
+        </ol>
+        <p class="publication-note">The source-only public edition does not include extracted game text. A public data pack is included only when separately approved for publication.</p>
+      </div>
+      <details class="status-diagnostics" id="status-diagnostics" hidden>
+        <summary>Loading details</summary>
+        <p id="status-detail"></p>
+        <p>The library expects <code>data/catalog.json</code> relative to this page. When using local files, open the guide through HTTP rather than double-clicking the HTML file.</p>
+      </details>
+    </section>
+
+    <div class="guide-content" id="guide-content" hidden>
+      <section class="quest-heading" aria-labelledby="guide-title">
+        <h1 id="guide-title"></h1>
+      </section>
+      <details class="quest-overview" id="quest-overview">
+        <summary><span>Quest overview</span><span id="overview-count"></span></summary>
+        <p class="quest-description" id="quest-description"></p>
+        <p class="quest-owner" id="quest-owner"></p>
+        <nav class="objective-navigation" id="objective-navigation" aria-label="Quest objectives" hidden>
+          <h2>Objectives</h2>
+          <div class="objective-options">
+            <div class="objective-list" id="objective-list"></div>
+            <p class="objective-order-note">Listed in source authoring order, not a verified progression.</p>
+          </div>
+        </nav>
+      </details>
+      <section class="objective-context" id="objective-context" hidden>
+        <p id="objective-description"></p>
+        <div id="objective-effects" class="objective-effects"></div>
+      </section>
+
+      <div class="conversation-heading" id="conversation-heading">
+        <div><h2 id="dialogue-title">Conversation</h2><p id="dialogue-subtitle"></p></div>
+        <label id="dialogue-picker" hidden>Conversation <select id="dialogue-select"></select></label>
+      </div>
+
+      <div class="mobile-views" role="tablist" aria-label="Guide view" id="mobile-views">
+        <button type="button" id="conversation-tab" role="tab" aria-selected="true" aria-controls="conversation-pane">Conversation</button>
+        <button type="button" id="map-tab" role="tab" aria-selected="false" aria-controls="graph-pane" tabindex="-1">Conversation map</button>
+      </div>
+      <div class="workspace" id="workspace" data-view="conversation">
+        <section class="conversation-pane" id="conversation-pane" aria-label="Focused conversation">
+          <div class="conversation-position">
+            <p class="speaker" id="speaker"></p>
+            <span class="demeanor" id="demeanor"></span>
+          </div>
+          <blockquote class="npc-quote" id="npc-quote"></blockquote>
+          <p class="conversation-note" id="conversation-note"></p>
+          <div class="route-snapshot" id="route-snapshot">
+            <h3>Your route so far</h3>
+            <div class="route-stats" id="route-stats"></div>
+            <p>Changes on this route, not your saved scores.</p>
+          </div>
+          <div class="choice-heading"><h3 id="choice-heading">Choose your reply</h3><span id="choice-count"></span></div>
+          <div class="choice-list" id="choices"></div>
+          <p class="route-warning" id="route-warning" role="status" hidden></p>
+          <div class="history-toolbar">
+            <button type="button" id="back" disabled>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#back"></use></svg>Step back
+            </button>
+            <button type="button" id="restart">
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#restart"></use></svg>Start over
+            </button>
+          </div>
+          <details class="conversation-outcomes">
+            <summary>Possible outcomes for this conversation</summary>
+            <div class="possible-changes" id="possible-changes"></div>
+          </details>
+          <p class="exploration-note">Explore freely. Gate conditions are shown, never evaluated; this guide does not know your save state.</p>
+          <div class="route-announcement visually-hidden" id="route-announcement" aria-live="polite" aria-atomic="true"></div>
+        </section>
+
+        <section class="graph-pane" id="graph-pane" aria-labelledby="graph-title">
+          <div class="graph-heading">
+            <div><h3 id="graph-title">Conversation map</h3><p>Every branch. Your path in forest ink.</p></div>
+            <button type="button" class="icon-button expand-map" id="expand-map" aria-label="Expand conversation map" aria-pressed="false">
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#expand"></use></svg>
+            </button>
+          </div>
+          <div class="graph-toolbar" aria-label="Map controls">
+            <div class="zoom-controls">
+              <button type="button" id="zoom-out" aria-label="Zoom map out">−</button>
+              <output id="zoom-level" aria-live="polite">90%</output>
+              <button type="button" id="zoom-in" aria-label="Zoom map in">+</button>
+            </div>
+            <button type="button" id="fit-map">Fit all</button>
+            <button type="button" id="focus-map">Follow current</button>
+          </div>
+          <div class="graph-viewport" id="graph-viewport" tabindex="0" aria-label="Scrollable conversation map. Use arrow keys to scroll; select a node to inspect it.">
+            <svg id="graph" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Full conversation graph"></svg>
+          </div>
+          <div class="graph-key"><span class="key-current">Current</span><span class="key-visited">Visited</span><span class="key-choice">Your reply</span><span class="key-gate">Gate / context</span></div>
+          <p class="graph-status" id="graph-status"></p>
+          <details class="map-inspection" id="map-inspection" hidden>
+            <summary id="map-inspection-title">Map note</summary>
+            <p id="map-inspection-text"></p>
+            <div class="effect-row" id="map-inspection-effects"></div>
+            <p class="muted">Inspecting a node does not change your route. Its raw fields are available in Research notes.</p>
+          </details>
+        </section>
+      </div>
+
+      <section class="task-state" id="task-state" hidden>
+        <svg class="task-icon" aria-hidden="true"><use href="assets/icons.svg#notebook"></use></svg>
+        <h2 id="task-title"></h2>
+        <p id="task-message"></p>
+      </section>
+
+      <details class="research-notes" id="research-notes">
+        <summary><span>Research notes</span><span class="summary-hint">Source, conditions &amp; recorded routes</span></summary>
+        <div class="research-content">
+          <p class="research-intro">The player-facing guide stays above. Extracted instructions, technical names, and incomplete evidence stay here. Nothing is executed.</p>
+          <section><h3>Extraction boundaries</h3><ul id="limitations"></ul></section>
+          <details id="route-details"><summary>Visited path, effects &amp; unevaluated conditions</summary><div id="route-history"></div><pre id="route-effects"></pre></details>
+          <details id="outcome-details"><summary>Recorded complete outcomes</summary><div id="recorded-outcomes"></div></details>
+          <details id="all-routes-details"><summary>Full recorded routes</summary><div id="all-routes"></div><button id="more-routes" type="button" hidden>Show more recorded routes</button></details>
+          <details id="source-details"><summary>Source &amp; current node</summary><a id="json-link" href="#" download>Download conversation JSON</a><pre id="source-raw"></pre></details>
+          <details id="quest-details"><summary>Quest objectives &amp; source</summary><a id="quest-json-link" href="#" download>Download quest JSON</a><pre id="quest-raw"></pre></details>
+          <p class="icon-clarification">
+            <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#friendly"></use></svg> Friendly and
+            <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#business"></use></svg> Business labels are gameplay-supported.
+            <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#enemy"></use></svg> Enemy and
+            <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#romance"></use></svg> Romance are internal variable names. Enemy’s exact in-game icon meaning is unconfirmed.
+          </p>
+        </div>
+      </details>
+      <footer class="guide-footer"><img src="assets/mark.svg" width="25" height="25" alt=""><span>Leave no branch unread.</span><span>A static exploration guide, not a walkthrough simulation.</span></footer>
+    </div>
+    <noscript><p class="noscript">This guide needs JavaScript to load its local JSON library and synchronize conversation choices with the map.</p></noscript>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
