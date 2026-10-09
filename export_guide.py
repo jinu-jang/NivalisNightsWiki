@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 import shutil
 import tempfile
+from conversation_search import SearchIndexBuilder
+from outcome_analysis import analyze_effect_outcomes
 
 from extract_dialogue import (
     ArticyAssets, DEFAULT_DIALOGUE, DEFAULT_GAME, DIALOGUE_CLASSES,
@@ -179,6 +181,7 @@ def validate_pack(data_dir):
         return path
 
     objective_ids = set()
+    spoken_node_ids = {}
     for item in catalog["quests"]:
         document = json.loads(document_path(item).read_text(encoding="utf-8"))
         objective_ids.update(objective["id"] for objective in document["objectives"])
@@ -199,6 +202,9 @@ def validate_pack(data_dir):
                 if document["dialogueId"] != item["id"]:
                     raise ValueError("Dialogue catalog/document ID mismatch")
                 graph = document
+                spoken_node_ids[item["id"]] = {
+                    node["id"] for node in document["nodes"] if node["type"] in {"line", "choice"}
+                }
                 if not set(document["questIds"]) <= quest_ids:
                     raise ValueError(f"Unknown quest reference in {item['id']}")
                 if not set(document["objectiveIds"]) <= objective_ids:
@@ -211,15 +217,57 @@ def validate_pack(data_dir):
             for edge in graph["edges"]:
                 if edge["from"] not in node_ids or edge["to"] not in node_ids:
                     raise ValueError(f"Dangling graph edge in {item['id']}")
+            if kind == "dialogue" and document.get("effectAnalysis"):
+                edge_by_id = {edge["id"]: edge for edge in graph["edges"]}
+                analysis = document["effectAnalysis"]
+                if analysis["schemaVersion"] != 2:
+                    raise ValueError("Unsupported effect analysis version")
+                for outcome in analysis["outcomes"]:
+                    witness = outcome["witness"]
+                    path = witness["nodes"]
+                    if not path or path[0] != graph["entry"] or path[-1] != graph["exit"] or len(witness["edges"]) != len(path) - 1:
+                        raise ValueError(f"Invalid effect-combination witness in {item['id']}")
+                    for index, edge_id in enumerate(witness["edges"]):
+                        edge = edge_by_id.get(edge_id)
+                        if not edge or edge["from"] != path[index] or edge["to"] != path[index + 1]:
+                            raise ValueError(f"Disconnected effect-combination witness in {item['id']}")
+    if catalog.get("searchFile"):
+        index_path = document_path({"file": catalog["searchFile"]})
+        search = json.loads(index_path.read_text(encoding="utf-8"))
+        if search["schemaVersion"] != 2 or {record["id"] for record in search["dialogues"]} != dialogue_ids:
+            raise ValueError("Search index/catalog mismatch")
+        if len(search["dialogues"]) != len(dialogue_ids):
+            raise ValueError("Repeated dialogue in search index")
+        for record in search["dialogues"]:
+            for line in record["lines"]:
+                if line[0] not in spoken_node_ids[record["id"]]:
+                    raise ValueError(f"Search index points to an unknown spoken node: {line[0]}")
     if catalog["defaultQuestId"] and catalog["defaultQuestId"] not in quest_ids:
         raise ValueError("Default quest is not in the catalog")
     if catalog["defaultDialogueId"] and catalog["defaultDialogueId"] not in dialogue_ids:
         raise ValueError("Default dialogue is not in the catalog")
+    if catalog.get("mediaFile"):
+        manifest_path = document_path({"file": catalog["mediaFile"]})
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest["schemaVersion"] != 2:
+            raise ValueError("Unsupported media manifest version")
+        descriptors = list(manifest["relationships"].values())
+        for descriptor in manifest.get("ui", {}).values():
+            descriptors.append(descriptor)
+            descriptors.extend(descriptor.get("variants", []))
+        descriptors.extend(character["portrait"] for character in manifest["characters"].values()
+                           if character.get("portrait"))
+        for descriptor in descriptors:
+            path = (manifest_path.parent / descriptor["file"]).resolve()
+            if not path.is_relative_to(data_dir.resolve()):
+                raise ValueError(f"Artwork path escapes the data pack: {descriptor['file']}")
+            if not path.is_file():
+                raise ValueError(f"Missing artwork file: {descriptor['file']}")
     return catalog
 
 
 def export_pack(assets, locale, data_dir, scope="quest", quest_name=DEFAULT_QUEST,
-                dialogue_name=DEFAULT_DIALOGUE, include_raw=False):
+                dialogue_name=DEFAULT_DIALOGUE, include_raw=False, include_media=False):
     quests = [
         collect_quest(assets, locale, identifier)
         for identifier, class_name in assets.classes.items() if class_name == "QuestFlow"
@@ -261,10 +309,14 @@ def export_pack(assets, locale, data_dir, scope="quest", quest_name=DEFAULT_QUES
         })
     dialogue_catalog = []
     analysis_counts = defaultdict(int)
+    effect_analysis_counts = defaultdict(int)
+    search_index = SearchIndexBuilder()
     for index, name in enumerate(sorted(selected_dialogues), 1):
         graph = extract_graph(assets, name, locale, demeanor_names, include_raw=include_raw)
         graph["questIds"] = sorted(dialogue_quests[name])
         graph["objectiveIds"] = sorted(dialogue_objectives[name])
+        graph["effectAnalysis"] = analyze_effect_outcomes(graph)
+        search_index.add(graph)
         for node in graph["nodes"]:
             if node["type"] == "external" and node["id"] in all_dialogues:
                 node["dialogueId"] = node["id"]
@@ -278,6 +330,7 @@ def export_pack(assets, locale, data_dir, scope="quest", quest_name=DEFAULT_QUES
             "nodeCount": len(graph["nodes"]), "warningCount": len(graph["warnings"]),
         })
         analysis_counts[graph["analysis"]["status"]] += 1
+        effect_analysis_counts[graph["effectAnalysis"]["status"]] += 1
         if index % 100 == 0:
             print(f"Exported {index}/{len(selected_dialogues)} dialogues", flush=True)
     default_quest = (
@@ -293,12 +346,20 @@ def export_pack(assets, locale, data_dir, scope="quest", quest_name=DEFAULT_QUES
             next(iter(assets.objects.values())).assets_file.unity_version},
         "defaultQuestId": default_quest, "defaultDialogueId": default_dialogue,
         "quests": quest_catalog, "dialogues": dialogue_catalog,
+        "searchFile": "search/dialogues.json",
         "coverage": {
             "questsFound": len(quests), "questsExported": len(selected_quests),
             "dialoguesFound": len(all_dialogues), "dialoguesExported": len(selected_dialogues),
             "routeAnalysis": dict(analysis_counts), "scope": scope,
+            "effectAnalysis": dict(effect_analysis_counts),
         },
     }
+    write_json(data_dir / "search" / "dialogues.json", search_index.build())
+    if include_media:
+        from extract_media import export_media
+
+        export_media(assets, data_dir / "media")
+        catalog["mediaFile"] = "media/manifest.json"
     write_json(data_dir / "catalog.json", catalog)
     (data_dir / PACK_MARKER).write_text("Generated locally; not approved for redistribution.\n", encoding="utf-8")
     validate_pack(data_dir)
@@ -333,15 +394,20 @@ def main():
     parser.add_argument("--dialogue-id")
     parser.add_argument("--output-dir", type=Path, default=Path("output"))
     parser.add_argument("--include-raw", action="store_true")
+    parser.add_argument("--include-media", action="store_true",
+                        help="Include locally extracted character portraits and dialogue UI symbols.")
     args = parser.parse_args()
     scope = args.scope or ("dialogue" if args.dialogue_id else "quest")
     assets = ArticyAssets(args.game_dir)
     locale = LocalizationIndex(load_english_localization(assets.data_dir))
-    args.output_dir.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=".nivalis-export-", dir=args.output_dir.parent) as stage:
+    if args.output_dir.resolve() in {ROOT, (ROOT / "web").resolve()}:
+        raise ValueError("Use a separate output directory, not repository/web source")
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".nivalis-export-", dir=args.output_dir) as stage:
         data_dir = Path(stage) / "data"
         catalog = export_pack(assets, locale, data_dir, scope, args.quest_id,
-                              args.dialogue_id or DEFAULT_DIALOGUE, args.include_raw)
+                              args.dialogue_id or DEFAULT_DIALOGUE, args.include_raw,
+                              args.include_media)
         install_site(data_dir, args.output_dir)
     print(f"{catalog['coverage']['questsExported']} quests / "
           f"{catalog['coverage']['dialoguesExported']} dialogues")

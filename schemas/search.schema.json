@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nivalis conversation search index v2",
+  "type": "object",
+  "required": ["schemaVersion", "dialogues"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "dialogues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "speakers", "lines"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "title": {"type": "string"},
+          "speakers": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "lines": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "prefixItems": [
+                {"type": "string", "minLength": 1},
+                {"enum": ["line", "choice"]},
+                {"type": ["string", "null"]},
+                {"type": "string", "minLength": 1}
+              ],
+              "items": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,42 +1,43 @@
 <!doctype html>
 <!--
-THESIS: A conversation field guide, not a dashboard. The reply and its branching context share the page.
-OWN-WORLD: Ivory paper, forest ink, amber annotations; an original moon/city/bowl seal and unboxed reading space.
-STORY: Find a quest, follow an objective, choose a reply, and see exactly where that route travels.
-FIRST VIEWPORT: A narrow library; a spacious reading column beside a legible, scrollable conversation map.
-FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, and source material behind disclosure.
+THESIS: A Nivalis wiki with a playable conversation reference, not a wall of transcript text.
+OWN-WORLD: Chalk journal panels, charcoal-and-gold dialogue frames, clipped corners, and four colored relationship symbols.
+STORY: Find a quest, meet its speaker, compare replies and their effects, then follow the branching map.
+FIRST VIEWPORT: A journal sidebar; quest context above a portrait-led conversation and a synchronized map.
+FORM: The user's Nivalis UI reference governs the theme. Wiki wayfinding and ordinary readable controls remain intact.
 -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#203d34">
-  <meta name="description" content="A quiet, independent quest and conversation guide to Nivalis Nights. Explore dialogue choices, relationship changes, and recipes.">
-  <title>Nivalis Fieldnotes</title>
+  <meta name="theme-color" content="#e6e2d8">
+  <meta name="description" content="An unofficial Nivalis Nights wiki. Explore quests, dialogue branches, relationship changes, and conversation rewards.">
+  <title>Nivalis Nights Wiki</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to the guide</a>
+  <a class="skip-link" href="#main">Skip to the conversation</a>
   <button class="drawer-backdrop" id="drawer-backdrop" aria-label="Close quest library" hidden></button>
-  <aside class="library" id="library" aria-label="Fieldnotes library">
+  <aside class="library" id="library" aria-label="Wiki library">
     <div class="library-brand">
       <img src="assets/mark.svg" width="54" height="54" alt="" class="brand-mark">
-      <a class="wordmark" href="./"><span>Nivalis</span><span>Fieldnotes</span></a>
+      <a class="wordmark" href="./" aria-label="Nivalis Nights Wiki home"><span>Nivalis</span><span class="wordmark-subtitle">Nights Wiki</span></a>
       <button class="icon-button drawer-close" id="drawer-close" aria-label="Close library">
         <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg>
       </button>
     </div>
-    <p class="brand-caption">A guide to the people<br>and possibilities of the city.</p>
+    <p class="brand-caption">An unofficial reference to the city<br>and the choices that shape it.</p>
     <div class="library-tabs" role="tablist" aria-label="Library collections">
-      <button id="quests-tab" type="button" role="tab" aria-selected="true" aria-controls="library-results">Quests</button>
-      <button id="dialogues-tab" type="button" role="tab" aria-selected="false" aria-controls="library-results" tabindex="-1">Conversations</button>
+      <button id="quests-tab" type="button" role="tab" aria-selected="true" aria-controls="library-results"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#quest"></use></svg>Quests</button>
+      <button id="dialogues-tab" type="button" role="tab" aria-selected="false" aria-controls="library-results" tabindex="-1"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#conversation"></use></svg>Dialogue</button>
     </div>
-    <label class="search-label" for="library-search">Search the library</label>
+    <label class="search-label" for="library-search">Find a quest or conversation</label>
     <div class="search-field">
       <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#search"></use></svg>
-      <input type="search" id="library-search" placeholder="Title or person…" autocomplete="off">
+      <input type="search" id="library-search" placeholder="Title or person…" autocomplete="off" aria-describedby="search-hint">
     </div>
+    <p class="search-hint" id="search-hint">Use Dialogue to search spoken lines and replies.</p>
     <p class="library-count" id="library-count" aria-live="polite">Loading the library…</p>
     <nav class="library-results" id="library-results" aria-label="Quests" role="tabpanel" aria-labelledby="quests-tab"></nav>
     <div class="library-pagination" id="library-pagination" hidden>
@@ -45,10 +46,10 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
       <button type="button" id="library-next" aria-label="Next library page">Next →</button>
     </div>
     <details class="library-about">
-      <summary>About these fieldnotes</summary>
-      <p>An independent, read-only guide to Nivalis Nights. No game or save files are changed.</p>
+      <summary>About this wiki</summary>
+      <p>An independent, read-only reference to Nivalis Nights. No game or save files are changed.</p>
       <p id="coverage"></p>
-      <p>Original guide identity; not official game artwork. Dialogue and quest content belong to their respective creators.</p>
+      <p>Nivalis Nights is developed by ION LANDS and published by <a href="https://505games.com/games/nivalisnights/">505 Games</a>. This fan-made wiki is not affiliated with or endorsed by either company.</p>
     </details>
   </aside>
 
@@ -58,18 +59,18 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
         <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#menu"></use></svg>
         <span>Library</span>
       </button>
-      <a class="mobile-wordmark" href="./"><img src="assets/mark.svg" width="31" height="31" alt=""><span>Nivalis Fieldnotes</span></a>
-      <nav class="breadcrumbs" aria-label="Breadcrumb" id="breadcrumbs"><span>Fieldnotes</span><span aria-hidden="true">/</span><span>Quest library</span></nav>
-      <span class="header-note">Nivalis Nights · Independent guide</span>
+      <a class="mobile-wordmark" href="./"><img src="assets/mark.svg" width="31" height="31" alt=""><span>Nivalis Nights Wiki</span></a>
+      <nav class="breadcrumbs" aria-label="Breadcrumb" id="breadcrumbs"><span>Wiki</span><span aria-hidden="true">/</span><span>Quests</span></nav>
+      <span class="header-note"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#conversation"></use></svg>Dialogue explorer</span>
     </header>
 
     <section class="page-status" id="page-status" aria-live="polite" aria-atomic="true">
       <img src="assets/mark.svg" width="80" height="80" alt="">
-      <h1 id="status-title">Opening your fieldnotes…</h1>
+      <h1 id="status-title">Opening the wiki…</h1>
       <p id="status-message">Loading the quest and conversation library.</p>
       <button type="button" class="solid-button" id="retry" hidden>Try again</button>
       <div class="data-pack-guide" id="data-pack-guide" hidden>
-        <h2>Bring your own fieldnotes</h2>
+        <h2>Add your local reference pack</h2>
         <p>Explore quests, compare replies, and follow every branch with a data pack from your own local game installation.</p>
         <ol>
           <li>Export a local quest and dialogue data pack using this project’s extractor.</li>
@@ -86,6 +87,7 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
 
     <div class="guide-content" id="guide-content" hidden>
       <section class="quest-heading" aria-labelledby="guide-title">
+        <svg class="quest-emblem" aria-hidden="true"><use href="assets/icons.svg#quest"></use></svg>
         <h1 id="guide-title"></h1>
       </section>
       <details class="quest-overview" id="quest-overview">
@@ -110,6 +112,19 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
         <label id="dialogue-picker" hidden>Conversation <select id="dialogue-select"></select></label>
       </div>
 
+      <section class="outcome-summary" id="outcome-summary" aria-labelledby="outcome-title" hidden>
+        <div class="outcome-heading"><h3 id="outcome-title">Possible outcomes</h3><span id="outcome-count"></span></div>
+        <div class="possible-changes" id="possible-changes"></div>
+        <p class="outcome-note" id="outcome-note"></p>
+        <details class="outcome-combinations" id="outcome-combinations">
+          <summary id="combination-title">Compare effect combinations</summary>
+          <p class="outcome-explainer">Each row comes from one connected route. Individual maximum gains may require different replies. Requirements are shown, not checked against your save.</p>
+          <div id="combination-list"></div>
+          <button type="button" id="more-combinations" hidden>Show more combinations</button>
+          <button type="button" id="clear-comparison" hidden>Clear compared path</button>
+        </details>
+      </section>
+
       <div class="mobile-views" role="tablist" aria-label="Guide view" id="mobile-views">
         <button type="button" id="conversation-tab" role="tab" aria-selected="true" aria-controls="conversation-pane">Conversation</button>
         <button type="button" id="map-tab" role="tab" aria-selected="false" aria-controls="graph-pane" tabindex="-1">Conversation map</button>
@@ -117,11 +132,24 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
       <div class="workspace" id="workspace" data-view="conversation">
         <section class="conversation-pane" id="conversation-pane" aria-label="Focused conversation">
           <div class="conversation-position">
-            <p class="speaker" id="speaker"></p>
-            <span class="demeanor" id="demeanor"></span>
+            <div class="speaker-profile">
+              <div class="portrait-frame" id="portrait-frame" hidden>
+                <img id="speaker-portrait" width="80" height="80" alt="">
+                <span class="portrait-status" id="portrait-status" hidden>Portrait unavailable</span>
+              </div>
+              <div class="speaker-identity">
+                <p class="speaker" id="speaker"></p>
+                <span class="demeanor" id="demeanor"></span>
+              </div>
+            </div>
+            <div class="relationship-panel" id="relationship-panel" hidden>
+              <div class="relationship-strip" id="relationship-strip" role="group" aria-label="Relationship changes on this route"></div>
+              <p>Route changes, not saved scores</p>
+            </div>
           </div>
-          <blockquote class="npc-quote" id="npc-quote"></blockquote>
+          <div class="speech-frame"><blockquote class="npc-quote" id="npc-quote"></blockquote></div>
           <p class="conversation-note" id="conversation-note"></p>
+          <p class="media-warning" id="media-warning" role="status" hidden></p>
           <div class="route-snapshot" id="route-snapshot">
             <h3>Your route so far</h3>
             <div class="route-stats" id="route-stats"></div>
@@ -138,17 +166,13 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
               <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#restart"></use></svg>Start over
             </button>
           </div>
-          <details class="conversation-outcomes">
-            <summary>Possible outcomes for this conversation</summary>
-            <div class="possible-changes" id="possible-changes"></div>
-          </details>
-          <p class="exploration-note">Explore freely. Gate conditions are shown, never evaluated; this guide does not know your save state.</p>
+          <p class="exploration-note">Explore freely. Branch requirements are shown, not checked against your save. Signed changes include negative scores hidden by the game's counters.</p>
           <div class="route-announcement visually-hidden" id="route-announcement" aria-live="polite" aria-atomic="true"></div>
         </section>
 
         <section class="graph-pane" id="graph-pane" aria-labelledby="graph-title">
           <div class="graph-heading">
-            <div><h3 id="graph-title">Conversation map</h3><p>Every branch. Your path in forest ink.</p></div>
+            <div><h3 id="graph-title">Conversation map</h3><p>Every branch. Your selected path stays highlighted.</p></div>
             <button type="button" class="icon-button expand-map" id="expand-map" aria-label="Expand conversation map" aria-pressed="false">
               <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#expand"></use></svg>
             </button>
@@ -165,12 +189,13 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
           <div class="graph-viewport" id="graph-viewport" tabindex="0" aria-label="Scrollable conversation map. Use arrow keys to scroll; select a node to inspect it.">
             <svg id="graph" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Full conversation graph"></svg>
           </div>
-          <div class="graph-key"><span class="key-current">Current</span><span class="key-visited">Visited</span><span class="key-choice">Your reply</span><span class="key-gate">Gate / context</span></div>
+          <div class="graph-key"><span class="key-current">Current</span><span class="key-visited">Visited</span><span class="key-choice">Your reply</span><span class="key-gate">Requirement / context</span><span class="key-comparison">Compared path</span></div>
           <p class="graph-status" id="graph-status"></p>
           <details class="map-inspection" id="map-inspection" hidden>
             <summary id="map-inspection-title">Map note</summary>
             <p id="map-inspection-text"></p>
             <div class="effect-row" id="map-inspection-effects"></div>
+            <div class="node-requirements" id="map-inspection-requirements" hidden></div>
             <p class="muted">Inspecting a node does not change your route. Its raw fields are available in Research notes.</p>
           </details>
         </section>
@@ -188,7 +213,7 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
           <p class="research-intro">The player-facing guide stays above. Extracted instructions, technical names, and incomplete evidence stay here. Nothing is executed.</p>
           <section><h3>Extraction boundaries</h3><ul id="limitations"></ul></section>
           <details id="route-details"><summary>Visited path, effects &amp; unevaluated conditions</summary><div id="route-history"></div><pre id="route-effects"></pre></details>
-          <details id="outcome-details"><summary>Recorded complete outcomes</summary><div id="recorded-outcomes"></div></details>
+          <details id="outcome-details"><summary>Effect combinations &amp; analysis coverage</summary><div id="recorded-outcomes"></div></details>
           <details id="all-routes-details"><summary>Full recorded routes</summary><div id="all-routes"></div><button id="more-routes" type="button" hidden>Show more recorded routes</button></details>
           <details id="source-details"><summary>Source &amp; current node</summary><a id="json-link" href="#" download>Download conversation JSON</a><pre id="source-raw"></pre></details>
           <details id="quest-details"><summary>Quest objectives &amp; source</summary><a id="quest-json-link" href="#" download>Download quest JSON</a><pre id="quest-raw"></pre></details>
@@ -200,8 +225,11 @@ FORM: Brief-pinned editorial fieldnotes. System controls, Georgia quotations, an
           </p>
         </div>
       </details>
-      <footer class="guide-footer"><img src="assets/mark.svg" width="25" height="25" alt=""><span>Leave no branch unread.</span><span>A static exploration guide, not a walkthrough simulation.</span></footer>
     </div>
+    <footer class="guide-footer">
+      <div class="footer-summary"><img src="assets/mark.svg" width="25" height="25" alt=""><span>Nivalis Nights Wiki · Unofficial</span><span>A source reference, not a save-state simulation.</span></div>
+      <p class="rights-notice">Nivalis Nights is developed by ION LANDS and published by <a href="https://505games.com/games/nivalisnights/">505 Games</a>. Game dialogue, characters, artwork and trademarks belong to their respective rights holders. This unofficial fan-made wiki is not affiliated with or endorsed by ION LANDS or 505 Games.</p>
+    </footer>
     <noscript><p class="noscript">This guide needs JavaScript to load its local JSON library and synchronize conversation choices with the map.</p></noscript>
   </main>
   <script type="module" src="app.js"></script>

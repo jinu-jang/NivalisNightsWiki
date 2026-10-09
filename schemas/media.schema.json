@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nivalis dialogue media manifest v2",
+  "type": "object",
+  "required": ["schemaVersion", "generator", "source", "characters", "relationships", "ui", "sprites", "coverage"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "generator": {"const": "extract_media.py"},
+    "source": {
+      "type": "object",
+      "required": ["file"],
+      "properties": {"file": {"type": "string", "pattern": "^[^/\\\\]+$"}}
+    },
+    "characters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["id", "articyId", "name", "className", "source", "portrait", "variableName", "status", "bindings"],
+        "properties": {
+          "id": {"type": "string"},
+          "articyId": {"type": "string", "pattern": "^[0-9]+$"},
+          "name": {"type": "string"},
+          "className": {"enum": ["DefaultSupportingCharacterTemplate", "DefaultMainCharacterTemplate"]},
+          "source": {"$ref": "#/$defs/source"},
+          "portrait": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/sprite"}]},
+          "variableName": {"type": ["string", "null"], "minLength": 1},
+          "variableNames": {
+            "type": "array", "minItems": 2, "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "status": {"enum": ["bound", "unresolved", "conflict"]},
+          "bindings": {"type": "array", "items": {"type": "object"}},
+          "variants": {
+            "type": "array",
+            "minItems": 2,
+            "items": {"$ref": "#/$defs/sprite"}
+          },
+          "diagnostics": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "relationships": {
+      "type": "object",
+      "required": ["friendly", "enemy", "romance", "business"],
+      "properties": {
+        "friendly": {"allOf": [{"$ref": "#/$defs/relationship"}, {"properties": {"meter": {"const": "Friend"}}}]},
+        "enemy": {"allOf": [{"$ref": "#/$defs/relationship"}, {"properties": {"meter": {"const": "Enemy"}}}]},
+        "romance": {"allOf": [{"$ref": "#/$defs/relationship"}, {"properties": {"meter": {"const": "Romance"}}}]},
+        "business": {"allOf": [{"$ref": "#/$defs/relationship"}, {"properties": {"meter": {"const": "Business"}}}]}
+      },
+      "additionalProperties": false
+    },
+    "ui": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sprite"}},
+    "sprites": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sprite"}},
+    "coverage": {
+      "type": "object",
+      "required": [
+        "canonicalCharacters", "personDefinitions", "namedPersonBindings", "portraitBindings",
+        "charactersWithBindings", "charactersWithPortrait", "unresolvedCharacters",
+        "unresolvedCount", "conflicts", "conflictCount", "noncanonicalPersonBindings",
+        "charactersWithVariableName", "variableConflicts", "variableConflictCount"
+      ],
+      "properties": {
+        "canonicalCharacters": {"type": "integer", "minimum": 0},
+        "personDefinitions": {"type": "integer", "minimum": 0},
+        "namedPersonBindings": {"type": "integer", "minimum": 0},
+        "portraitBindings": {"type": "integer", "minimum": 0},
+        "charactersWithBindings": {"type": "integer", "minimum": 0},
+        "charactersWithPortrait": {"type": "integer", "minimum": 0},
+        "charactersWithVariableName": {"type": "integer", "minimum": 0},
+        "variableConflicts": {"type": "array", "items": {"type": "object"}},
+        "variableConflictCount": {"type": "integer", "minimum": 0},
+        "unresolvedCharacters": {"type": "array", "items": {"type": "object"}},
+        "unresolvedCount": {"type": "integer", "minimum": 0},
+        "conflicts": {"type": "array", "items": {"type": "object"}},
+        "conflictCount": {"type": "integer", "minimum": 0},
+        "noncanonicalPersonBindings": {"type": "array", "items": {"type": "object"}}
+      }
+    },
+    "provenance": {"type": "object"},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": ["file", "pathId"],
+      "properties": {
+        "file": {"type": "string", "pattern": "^[^/\\\\]+$"},
+        "pathId": {"type": "string", "pattern": "^-?[0-9]+$"}
+      }
+    },
+    "bindingStep": {
+      "type": "object",
+      "required": ["source", "field"],
+      "properties": {
+        "source": {"$ref": "#/$defs/source"},
+        "field": {"type": "string"}
+      }
+    },
+    "sprite": {
+      "type": "object",
+      "required": [
+        "file", "name", "width", "height", "source", "textureSource",
+        "rect", "pivot", "trimRect", "trimOffset", "border", "pixelsPerUnit",
+        "renderDataSource", "restoration"
+      ],
+      "properties": {
+        "file": {"type": "string", "pattern": "^sprites/[^/\\\\]+\\.png$"},
+        "name": {"type": "string"},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "source": {"$ref": "#/$defs/source"},
+        "textureSource": {"$ref": "#/$defs/source"},
+        "rect": {"$ref": "#/$defs/rect"},
+        "pivot": {"anyOf": [{"$ref": "#/$defs/vector2"}, {"type": "null"}]},
+        "trimRect": {"$ref": "#/$defs/rect"},
+        "trimOffset": {"$ref": "#/$defs/vector2"},
+        "border": {
+          "type": ["object", "null"],
+          "required": ["left", "bottom", "right", "top"],
+          "properties": {
+            "left": {"type": "number"}, "bottom": {"type": "number"},
+            "right": {"type": "number"}, "top": {"type": "number"}
+          }
+        },
+        "pixelsPerUnit": {"type": "number"},
+        "renderDataSource": {"$ref": "#/$defs/source"},
+        "restoration": {
+          "type": "object",
+          "required": ["left", "top", "decodedWidth", "decodedHeight"],
+          "properties": {
+            "left": {"type": "integer", "minimum": 0},
+            "top": {"type": "integer", "minimum": 0},
+            "decodedWidth": {"type": "integer", "minimum": 1},
+            "decodedHeight": {"type": "integer", "minimum": 1}
+          }
+        },
+        "binding": {"type": "array", "items": {"$ref": "#/$defs/bindingStep"}}
+      }
+    },
+    "relationship": {
+      "allOf": [
+        {"$ref": "#/$defs/sprite"},
+        {
+          "type": "object",
+          "required": ["meter", "tint", "rgba", "binding", "tintContext", "tintKind"],
+          "properties": {
+            "meter": {"enum": ["Friend", "Enemy", "Romance", "Business"]},
+            "tint": {"type": "string", "pattern": "^#[0-9A-F]{6}$"},
+            "rgba": {
+              "type": "array", "minItems": 4, "maxItems": 4,
+              "items": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+          }
+        }
+      ]
+    },
+    "rect": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": {"type": "number"}, "y": {"type": "number"},
+        "width": {"type": "number"}, "height": {"type": "number"}
+      }
+    },
+    "vector2": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {"x": {"type": "number"}, "y": {"type": "number"}}
+    }
+  }
+}

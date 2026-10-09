@@ -1,6 +1,12 @@
 name: Publish guide frontend
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/pages.yml'
+      - 'web/**'
+      - 'published-data/**'
   workflow_dispatch:
 
 permissions:

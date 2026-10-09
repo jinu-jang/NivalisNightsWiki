@@ -1,7 +1,8 @@
-import { nodeLabel, nodeText } from "./route.js";
+import { DialogueRoute, nodeLabel, nodeText, nodeEffects, signed } from "./route.js";
+import { requirementsText } from "./labels.js";
 
 const NS = "http://www.w3.org/2000/svg";
-const CARD_WIDTH = 210, CARD_HEIGHT = 104, COLUMN = 238, ROW = 154, MARGIN = 32;
+const CARD_WIDTH = 240, CARD_HEIGHT = 132, COLUMN = 272, ROW = 180, MARGIN = 32;
 const svgElement = (tag, attributes = {}) => {
   const element = document.createElementNS(NS, tag);
   for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
@@ -100,16 +101,19 @@ function textLines(text, maxLength = 29, maxLines = 3) {
 }
 
 export class ConversationGraph {
-  constructor(svg, viewport, { onInspect, onZoom } = {}) {
+  constructor(svg, viewport, { onInspect, onZoom, getArtwork } = {}) {
     this.svg = svg;
     this.viewport = viewport;
     this.onInspect = onInspect;
     this.onZoom = onZoom;
+    this.getArtwork = getArtwork;
     this.zoom = .9;
     this.nodes = new Map();
     this.edgeElements = new Map();
     this.current = null;
     this.focusFrame = null;
+    this.inspected = null;
+    this.comparison = null;
   }
 
   load(data) {
@@ -117,12 +121,22 @@ export class ConversationGraph {
     this.svg.replaceChildren();
     this.nodes.clear(); this.edgeElements.clear();
     this.current = null;
+    this.inspected = null; this.comparison = null;
+    const route = new DialogueRoute(data);
     this.layout = layoutGraph(data.nodes || [], data.edges || []);
     const defs = svgElement("defs");
-    for (const [id, color] of [["map-arrow", "#9ca88d"], ["map-arrow-visited", "#365b48"]]) {
+    for (const [id, color] of [["map-arrow", "#b5aa95"], ["map-arrow-visited", "#8a642b"]]) {
       const marker = svgElement("marker", { id, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto-start-reverse" });
       marker.append(svgElement("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: color }));
       defs.append(marker);
+    }
+    this.nativeIcons = new Set();
+    for (const name of ["friendly", "enemy", "romance", "business"]) {
+      const artwork = this.getArtwork?.(name);
+      if (!artwork) continue;
+      const mask = svgElement("mask", { id: `map-icon-${name}`, x: 0, y: 0, width: 20, height: 20, maskUnits: "userSpaceOnUse", "mask-type": "alpha" });
+      mask.append(svgElement("image", { href: artwork.href, x: 0, y: 0, width: 20, height: 20 }));
+      defs.append(mask); this.nativeIcons.add(name);
     }
     this.svg.append(defs);
     const connections = svgElement("g", { "aria-hidden": "true" });
@@ -149,22 +163,46 @@ export class ConversationGraph {
     });
     for (const node of data.nodes || []) {
       const id = String(node.id), position = this.layout.positions.get(id);
-      const group = svgElement("g", { transform: `translate(${position.x},${position.y})`, class: `graph-node ${node.type || ""}`, role: "button", tabindex: "-1", "data-node-id": id, "data-node-type": node.type || "", "aria-label": `Inspect ${nodeLabel(node)}: ${nodeText(node)}` });
+      const details = nodeEffects(node, route);
+      const requirements = requirementsText(details.conditions);
+      const description = [nodeText(node), ...details.items.map(item => item.text), requirements ? `Requires: ${requirements}` : ""].filter(Boolean).join("\n");
+      const group = svgElement("g", { transform: `translate(${position.x},${position.y})`, class: `graph-node ${node.type || ""}`, role: "button", tabindex: "-1", "data-node-id": id, "data-node-type": node.type || "", "aria-label": `Inspect ${nodeLabel(node)}: ${description}` });
       group.append(svgElement("rect", { x: 0, y: 0, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 3 }));
       const title = svgElement("title");
-      title.textContent = `${nodeLabel(node)}\n${nodeText(node)}`;
+      title.textContent = `${nodeLabel(node)}\n${description}`;
       const label = svgElement("text", { x: 13, y: 22, class: "node-label" });
       label.textContent = nodeLabel(node).length > 30 ? `${nodeLabel(node).slice(0, 29)}…` : nodeLabel(node);
       const text = svgElement("text", { x: 13, y: 44, class: "node-text" });
-      textLines(nodeText(node)).forEach((line, index) => {
+      textLines(nodeText(node), 33).forEach((line, index) => {
         const span = svgElement("tspan", { x: 13, dy: index === 0 ? 0 : 17 });
         span.textContent = line;
         text.append(span);
       });
       group.append(title, label, text);
-      group.addEventListener("click", () => this.onInspect?.(node));
+      const badges = [...details.items];
+      if (requirements) badges.push({ icon: "condition", kind: "requirement", text: `Requires: ${requirements}` });
+      let x = 13;
+      for (const item of badges.slice(0, 4)) {
+        const width = item.kind === "unparsed" || item.kind === "requirement" ? 29 : 47;
+        const badge = svgElement("g", { transform: `translate(${x},101)`, class: `map-effect ${item.icon}`, "data-effect-kind": item.kind, "data-variable": item.variable || "", "aria-hidden": "true" });
+        if (this.nativeIcons.has(item.icon)) {
+          badge.append(svgElement("rect", { x: 0, y: 0, width: 20, height: 20, fill: "currentColor", mask: `url(#map-icon-${item.icon})`, "data-media-role": item.icon }));
+        } else badge.append(svgElement("use", { href: `assets/icons.svg#${item.icon}`, x: 0, y: 0, width: 20, height: 20 }));
+        const value = item.kind === "delta" ? signed(item.value) : item.kind === "set" ? `=${typeof item.value === "boolean" ? Number(item.value) : item.value}` : item.kind === "unlock_recipe" ? "+" : "";
+        if (value) {
+          const number = svgElement("text", { x: 23, y: 15, class: "map-effect-value" });
+          number.textContent = value.length > 4 ? `${value.slice(0, 3)}…` : value;
+          badge.append(number);
+        }
+        group.append(badge); x += width;
+      }
+      if (badges.length > 4) {
+        const extra = svgElement("text", { x, y: 116, class: "map-effect-more" });
+        extra.textContent = `+${badges.length - 4}`; group.append(extra);
+      }
+      group.addEventListener("click", () => { this.inspect(id); this.onInspect?.(node); });
       group.addEventListener("keydown", event => {
-        if (["Enter", " "].includes(event.key)) { event.preventDefault(); this.onInspect?.(node); }
+        if (["Enter", " "].includes(event.key)) { event.preventDefault(); this.inspect(id); this.onInspect?.(node); }
         else if (["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"].includes(event.key)) {
           event.preventDefault();
           const direction = ["ArrowDown", "ArrowRight"].includes(event.key) ? 1 : -1;
@@ -222,8 +260,26 @@ export class ConversationGraph {
     this.viewport.scrollTo({ left: 0, top: 0, behavior: "auto" });
   }
 
+  inspect(id, follow = false) {
+    this.inspected = String(id);
+    for (const [key, group] of this.nodes) group.classList.toggle("inspected", key === this.inspected);
+    if (follow) this.focusNode(this.inspected);
+  }
+
+  compare(witness) {
+    this.comparison = witness;
+    const nodes = new Set(witness?.nodes || []), edges = new Set(witness?.edges || []);
+    for (const [id, group] of this.nodes) group.classList.toggle("comparison", nodes.has(id));
+    for (const [id, path] of this.edgeElements) path.classList.toggle("comparison", edges.has(id));
+    if (witness?.choices?.length) this.focusNode(witness.choices[0]);
+  }
+
   focusCurrent() {
-    const position = this.layout?.positions.get(this.current);
+    this.focusNode(this.current);
+  }
+
+  focusNode(id) {
+    const position = this.layout?.positions.get(String(id));
     if (!position || !this.viewport.clientWidth) return;
     this.viewport.scrollTo({
       left: Math.max(0, (position.x + CARD_WIDTH / 2) * this.zoom - this.viewport.clientWidth / 2),

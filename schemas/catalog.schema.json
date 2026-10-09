@@ -8,6 +8,8 @@
     "game": {"type": "object", "required": ["title"]},
     "defaultQuestId": {"type": ["string", "null"]},
     "defaultDialogueId": {"type": ["string", "null"]},
+    "mediaFile": {"type": "string"},
+    "searchFile": {"type": "string"},
     "quests": {
       "type": "array",
       "items": {

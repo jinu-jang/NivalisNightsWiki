@@ -1,10 +1,7 @@
-const terminalTypes = new Set(["exit", "external", "subdialogue"]);
+import { displayName, signed, internalEffects, requirementsText } from "./labels.js";
+export { displayName, signed } from "./labels.js";
 
-export function displayName(value, fallback = "Unnamed") {
-  const text = String(value || "").trim();
-  if (!text || /^(?:Dlg|DFr|FFr|Obj|Ins|Con|Chr|CFr|Rec|Rcp|Itm|Item)_[A-F\d]+$/i.test(text) || /^\d{10,}$/.test(text)) return fallback;
-  return text.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\s+/g, " ").trim();
-}
+const terminalTypes = new Set(["exit", "external", "subdialogue"]);
 
 export function relationshipOf(variable) {
   const match = /^(.*)\.(Friend|Enemy|Romance|Business)$/.exec(variable || "");
@@ -14,16 +11,24 @@ export function relationshipOf(variable) {
 export function summarizeEffects(effects = []) {
   const summary = { deltas: {}, assignments: {}, recipes: [], unparsed: [], actions: [] };
   for (const effect of effects) {
-    if (effect.type === "delta" && Number.isFinite(effect.value)) summary.deltas[effect.variable] = (summary.deltas[effect.variable] || 0) + effect.value;
-    else if (effect.type === "set") summary.assignments[effect.variable] = effect.value;
+    if (effect.type === "delta" && Number.isFinite(effect.value)) {
+      if (Object.hasOwn(summary.assignments, effect.variable)) {
+        if (typeof summary.assignments[effect.variable] === "boolean") summary.unparsed.push(`Numeric change to boolean state: ${effect.variable} ${signed(effect.value)}`);
+        else summary.assignments[effect.variable] += effect.value;
+      } else {
+        summary.deltas[effect.variable] = (summary.deltas[effect.variable] || 0) + effect.value;
+        if (!summary.deltas[effect.variable]) delete summary.deltas[effect.variable];
+      }
+    } else if (effect.type === "set") {
+      delete summary.deltas[effect.variable];
+      summary.assignments[effect.variable] = effect.value;
+    }
     else if (effect.type === "unlock_recipe" && !summary.recipes.includes(effect.recipe)) summary.recipes.push(effect.recipe);
     else if (effect.type === "template_action" && effect.label) summary.actions.push(effect.label);
     else if (effect.type === "unparsed") summary.unparsed.push(effect.script || "Unresolved instruction");
   }
   return summary;
 }
-
-export const signed = value => value > 0 ? `+${value}` : String(value);
 
 export function meaningfulEffects(summary, includeZero = false) {
   const result = [];
@@ -43,17 +48,35 @@ export function meaningfulEffects(summary, includeZero = false) {
 export function nodeLabel(node) {
   if (!node) return "Missing node";
   if (node.type === "line") return displayName(node.speaker, "Speaker");
-  return ({ choice: "Your reply", action: "Instruction", condition: "Unevaluated gate", entry: "Conversation starts", exit: "Conversation ends", external: "External context", subdialogue: "Linked conversation" })[node.type] || "Conversation node";
+  return ({ choice: "Your reply", action: "Game-state change", condition: "Branch requirement", entry: "Conversation starts", exit: "Conversation ends", external: "External context", subdialogue: "Linked conversation" })[node.type] || "Conversation node";
+}
+
+export function describedEffects(summary, includeZero = false) {
+  return [...meaningfulEffects(summary, includeZero), ...internalEffects(summary)];
 }
 
 export function nodeText(node) {
   if (!node) return "This node was not exported.";
-  if (node.type === "action") return meaningfulEffects(summarizeEffects(node.effects)).map(item => item.text).join(" · ") || "Extracted instruction. Details in Research notes.";
-  if (node.type === "condition") return "Eligibility is not evaluated by this guide.";
+  if (node.type === "action") return describedEffects(summarizeEffects(node.effects)).map(item => item.text).join(" · ") || "No state change is recorded on this instruction.";
+  if (node.type === "condition") return requirementsText(node.conditions) || "A game requirement controls the next branch; no rule text was exported.";
   if (node.type === "entry") return "Begin this conversation.";
   if (node.type === "exit") return "End of this conversation. Outgoing links are context only.";
   if (["external", "subdialogue"].includes(node.type)) return displayName(node.text, "A separate conversation or source context.");
   return node.text || "No localized text was exported.";
+}
+
+export function nodeEffects(node, route) {
+  const effects = [...(node.effects || [])], conditions = [...(node.conditions || [])];
+  const edges = route.outgoing.get(String(node.id)) || [];
+  if (edges.length === 1) {
+    if (node.type === "choice") {
+      const preview = route.preview(edges[0]);
+      effects.push(...preview.effects); conditions.push(...preview.conditions);
+    } else {
+      effects.push(...(edges[0].effects || [])); conditions.push(...(edges[0].conditions || []));
+    }
+  }
+  return { effects, conditions: [...new Set(conditions)], items: describedEffects(summarizeEffects(effects)) };
 }
 
 export class DialogueRoute {
@@ -154,6 +177,6 @@ export class DialogueRoute {
       effects.push(...(next.effects || []));
       id = next.to;
     }
-    return { summary: summarizeEffects(effects), conditions: [...new Set(conditions)], stop: stop || "cycle" };
+    return { effects, summary: summarizeEffects(effects), conditions: [...new Set(conditions)], stop: stop || "cycle" };
   }
 }

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from export_guide import collect_quest, filename, quest_links, validate_pack, write_json
 from extract_dialogue import LocalizationIndex, RouteEnumerationError, enumerate_paths, template_action
+from outcome_analysis import analyze_effect_outcomes
 import test_dialogue
 
 
@@ -96,6 +97,79 @@ class GuideExportTests(unittest.TestCase):
             })
             with self.assertRaisesRegex(ValueError, "escapes"):
                 validate_pack(root)
+
+    def write_effect_pack(self, root):
+        graph = test_dialogue.DialogueTests.graph()
+        graph.update(schemaVersion=2, dialogueId="d", questIds=[], objectiveIds=[])
+        for index, edge in enumerate(graph["edges"]):
+            edge["id"] = f"edge-{index}"
+        graph["effectAnalysis"] = analyze_effect_outcomes(graph)
+        write_json(root / "catalog.json", {
+            "schemaVersion": 2, "defaultQuestId": None, "defaultDialogueId": "d",
+            "quests": [], "dialogues": [{"id": "d", "file": "dialogues/d.json"}],
+            "searchFile": "search/dialogues.json",
+        })
+        write_json(root / "dialogues" / "d.json", graph)
+        index = {"schemaVersion": 2, "dialogues": [{
+            "id": "d", "title": "Example", "speakers": [], "lines": [["a", "choice", None, "Reply"]],
+        }]}
+        write_json(root / "search" / "dialogues.json", index)
+        return graph, index
+
+    def test_search_and_witness_references_are_validated(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.write_effect_pack(root)
+            validate_pack(root)
+
+    def test_disconnected_effect_witness_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            graph, _ = self.write_effect_pack(root)
+            graph["effectAnalysis"]["outcomes"][0]["witness"]["edges"][0] = "edge-4"
+            write_json(root / "dialogues" / "d.json", graph)
+            with self.assertRaisesRegex(ValueError, "Disconnected"):
+                validate_pack(root)
+
+    def test_unknown_search_node_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            _, index = self.write_effect_pack(root)
+            index["dialogues"][0]["lines"][0][0] = "not-in-graph"
+            write_json(root / "search" / "dialogues.json", index)
+            with self.assertRaisesRegex(ValueError, "unknown spoken node"):
+                validate_pack(root)
+
+    def test_search_catalog_mismatch_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            _, index = self.write_effect_pack(root)
+            index["dialogues"][0]["id"] = "another-dialogue"
+            write_json(root / "search" / "dialogues.json", index)
+            with self.assertRaisesRegex(ValueError, "index/catalog mismatch"):
+                validate_pack(root)
+
+    def test_media_paths_must_exist_inside_the_pack(self):
+        cases = [
+            ("relationships", "friendly", "../../../outside.png", "escapes"),
+            ("relationships", "friendly", "missing.png", "Missing artwork"),
+            ("ui", "dialogueBubble", "../../../outside.png", "escapes"),
+        ]
+        for collection, role, file, expected in cases:
+            with self.subTest(collection=collection, file=file), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                write_json(root / "catalog.json", {
+                    "schemaVersion": 2, "defaultQuestId": None, "defaultDialogueId": None,
+                    "quests": [], "dialogues": [], "mediaFile": "media/manifest.json",
+                })
+                manifest = {
+                    "schemaVersion": 2, "characters": {},
+                    "relationships": {}, "ui": {},
+                }
+                manifest[collection][role] = {"file": file}
+                write_json(root / "media" / "manifest.json", manifest)
+                with self.assertRaisesRegex(ValueError, expected):
+                    validate_pack(root)
 
     def test_schema_files_are_valid_json_and_versioned(self):
         root = Path(__file__).resolve().parents[1]

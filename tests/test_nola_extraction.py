@@ -69,6 +69,11 @@ class NolaExtractionTests(unittest.TestCase):
                     self.assertEqual(node["raw"]["id"], node["articyId"])
                     self.assertEqual(node["raw"]["m_Script"]["m_FileID"], 1)
 
+    def test_nola_portraits_use_canonical_speaker_identity(self):
+        lines = [node for node in self.graph["nodes"] if node["type"] == "line"]
+        self.assertTrue(lines)
+        self.assertEqual({node["speakerId"] for node in lines}, {"Ntt_4AEB60D1"})
+
 
 if __name__ == "__main__":
     unittest.main()

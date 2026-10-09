@@ -1,6 +1,6 @@
 import unittest
 
-from extract_dialogue import enumerate_paths, find_localized_dialogue, lossless, parse_effects
+from extract_dialogue import enumerate_paths, find_localized_dialogue, lossless, parse_effects, summarize_effects
 
 
 class DialogueTests(unittest.TestCase):
@@ -18,6 +18,15 @@ class DialogueTests(unittest.TestCase):
         self.assertEqual(parse_effects("Npc.Friend += true"), [
             {"type": "unparsed", "script": "Npc.Friend += true"}
         ])
+
+    def test_summary_composes_resets_and_changes_in_order(self):
+        set_then_add = summarize_effects(parse_effects("Npc.Friend = 3; Npc.Friend += 2"))
+        add_then_set = summarize_effects(parse_effects("Npc.Friend += 2; Npc.Friend = 3"))
+        self.assertEqual(set_then_add["assignments"], {"Npc.Friend": 5})
+        self.assertEqual(add_then_set["assignments"], {"Npc.Friend": 3})
+        self.assertEqual(set_then_add["deltas"], {})
+        self.assertEqual(add_then_set["deltas"], {})
+        self.assertEqual(summarize_effects(parse_effects("Npc.Friend -= 1; Npc.Friend += 1"))["deltas"], {})
 
     def test_uint64_ids_survive_javascript_json(self):
         self.assertEqual(lossless({"id": 72057714297016594, "items": [1, True]}),

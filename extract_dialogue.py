@@ -85,9 +85,18 @@ def summarize_effects(effects):
     for effect in effects:
         kind = effect["type"]
         if kind == "delta":
-            deltas[effect["variable"]] += effect["value"]
+            variable = effect["variable"]
+            if variable in assignments:
+                if isinstance(assignments[variable], bool):
+                    unparsed.append(f"Numeric change to boolean state: {variable} {effect['value']:+}")
+                else:
+                    assignments[variable] += effect["value"]
+            else:
+                deltas[variable] += effect["value"]
         elif kind == "set":
-            assignments[effect["variable"]] = effect["value"]
+            variable = effect["variable"]
+            deltas.pop(variable, None)
+            assignments[variable] = effect["value"]
         elif kind == "unlock_recipe":
             if effect["recipe"] not in unlocks:
                 unlocks.append(effect["recipe"])
@@ -98,7 +107,7 @@ def summarize_effects(effects):
         else:
             raise ValueError(f"Unknown effect type: {kind}")
     return {
-        "deltas": dict(deltas),
+        "deltas": {variable: value for variable, value in deltas.items() if value},
         "assignments": assignments,
         "recipes": unlocks,
         "unparsed": unparsed,
@@ -415,7 +424,8 @@ def extract_graph(assets, dialogue_name, localization_index=None, demeanor_names
     for identifier, record in records.items():
         class_name = assets.class_name(identifier)
         speaker_id = record.get("mSpeaker", {}).get("objectRef")
-        speaker = assets.read(speaker_id)["mDisplayName"] if speaker_id else None
+        speaker_record = assets.read(speaker_id) if speaker_id else None
+        speaker = speaker_record["mDisplayName"] if speaker_record else None
         is_player = bool(speaker_id and "MainCharacter" in assets.class_name(speaker_id))
         kind = "choice" if is_player else "line" if speaker_id else (
             "condition" if class_name == "Condition" else
@@ -447,6 +457,7 @@ def extract_graph(assets, dialogue_name, localization_index=None, demeanor_names
         nodes.append({
             "id": record["technicalName"], "articyId": str(identifier),
             "type": kind, "className": class_name, "speaker": speaker, "text": text,
+            "speakerId": speaker_record["technicalName"] if speaker_record else None,
             "textSource": "localization" if localized_text is not None else "authored",
             "pronounText": pronouns, "effects": effects, "conditions": conditions,
             "script": expression,

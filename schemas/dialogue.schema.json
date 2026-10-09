@@ -22,6 +22,7 @@
           "type": {"enum": ["line", "choice", "action", "condition", "entry", "exit", "external", "subdialogue"]},
           "text": {"type": "string"},
           "speaker": {"type": ["string", "null"]},
+          "speakerId": {"type": ["string", "null"]},
           "script": {"type": "string"},
           "textSource": {"enum": ["localization", "authored"]},
           "effects": {"type": "array", "items": {"$ref": "#/$defs/effect"}},
@@ -55,7 +56,8 @@
         "message": {"type": "string"}
       }
     },
-    "warnings": {"type": "array", "items": {"type": "string"}}
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "effectAnalysis": {"$ref": "effect-analysis.schema.json"}
   },
   "$defs": {
     "effect": {
